@@ -10,8 +10,17 @@
 :root{--bg:#0f172a;--card:#1e293b;--text:#fff}
 body.light{--bg:#f1f5f9;--card:#fff;--text:#0f172a}
 body{font-family:Arial;background:var(--bg);color:var(--text);margin:0}
+
 .container{max-width:420px;margin:auto;padding:12px}
-.card{background:var(--card);padding:12px;border-radius:12px;margin-bottom:10px}
+
+.card{
+background:var(--card);
+padding:12px;
+border-radius:12px;
+margin-bottom:10px;
+min-height:220px;
+}
+
 .center{text-align:center}
 
 input,select,button{
@@ -36,9 +45,12 @@ li span:first-child{max-width:65%;word-wrap:break-word;}
 .income{color:#22c55e}
 .expense{color:#ef4444}
 
-canvas{max-height:160px;width:100%!important}
-.row{display:flex;gap:6px}
-.row>*{flex:1}
+canvas{
+height:180px !important;
+width:100%!important;
+display:block;
+min-height:180px;
+}
 </style>
 </head>
 
@@ -84,16 +96,16 @@ canvas{max-height:160px;width:100%!important}
 <div class="card">
 <h3>Riwayat</h3>
 <ul id="list"></ul>
-<button class="red" onclick="resetLocal()">Reset Lokal</button>
+<button class="red" onclick="resetLocal()">Reset Tampilan</button>
 </div>
 
 </div>
 
 <script>
 let data = [];
-let chart,lineChart;
+let chart, lineChart;
 
-const SHEET_URL="https://script.google.com/macros/s/AKfycbwbdwyBPKgaBNVoWU3hVkSrBEmJftY0pPxr5wLPRcH2qgd5qVSA9kbRaKwGHWaOvPAYMg/exec";
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbyiYp8c1jNFlE1vNTQSUiZzkkucIzR4JrJqM6lQ6NstRSZuMBGXI-hkoa9l56bi1q6rpQ/exec";
 
 function format(num){
 return new Intl.NumberFormat('id-ID').format(num||0)
@@ -103,13 +115,13 @@ function today(){
 return new Date().toISOString().split('T')[0]
 }
 
-document.getElementById('date').value=today();
+document.getElementById('date').value = today();
 
 function toggleMode(){
 document.body.classList.toggle('light')
 }
 
-// format rupiah input
+// input rupiah
 document.getElementById('amount').addEventListener('input',e=>{
 let val=e.target.value.replace(/\D/g,'');
 e.target.value=format(val);
@@ -132,37 +144,45 @@ method:'POST',
 mode:'no-cors',
 body:JSON.stringify(item)
 }).then(()=>{
-load(); // langsung reload data dari sheet
+setTimeout(load,900);
 });
 }
 
-// ambil data dari sheet
+// load data
 async function load(){
 try{
-const res=await fetch(SHEET_URL);
-const result=await res.json();
+const res = await fetch(SHEET_URL + "?t=" + Date.now());
+const text = await res.text();
+const result = JSON.parse(text);
 
-data=result.map(d=>({
-date:new Date(d.date).toISOString().split('T')[0],
-amount:Number(d.amount),
+data = result.map(d=>({
+date:(d.date||"").split('T')[0],
+amount:Number(d.amount)||0,
 type:d.type,
-desc:d.desc,
-category:d.category
+desc:d.desc||"",
+category:d.category||""
 }));
 
 render();
 
+setTimeout(()=>{
+chart?.resize();
+lineChart?.resize();
+},200);
+
 }catch(err){
-console.log("error",err);
+console.log("LOAD ERROR:",err);
+data=[];
+render();
 }
 }
 
-// render UI
+// render
 function render(){
 const list=document.getElementById('list');
 list.innerHTML='';
 
-let income=0,expense=0;
+let income=0, expense=0;
 
 data.slice().reverse().forEach(d=>{
 list.innerHTML+=`
@@ -175,42 +195,63 @@ if(d.type==='income') income+=d.amount;
 else expense+=d.amount;
 });
 
-document.getElementById('saldo').innerText=format(income-expense);
+document.getElementById('saldo').innerText = format(income-expense);
 
-// chart donut
+// CHART DONUT
 if(chart) chart.destroy();
-chart=new Chart(document.getElementById('chart'),{
+
+chart = new Chart(document.getElementById('chart'),{
 type:'doughnut',
-data:{labels:['Masuk','Keluar'],datasets:[{data:[income,expense]}]}
+data:{
+labels:['Masuk','Keluar'],
+datasets:[{data:[income,expense]}]
+},
+options:{
+responsive:true,
+maintainAspectRatio:false
+}
 });
 
-// chart line
+// LINE CHART
 let map={};
+
 data.forEach(d=>{
-if(!map[d.date]) map[d.date]=0;
-map[d.date]+= d.type==='income'? d.amount : -d.amount;
+if(!d.date) return;
+map[d.date]=(map[d.date]||0)+ (d.type==='income'?d.amount:-d.amount);
 });
 
 const labels=Object.keys(map).sort();
 const values=labels.map(l=>map[l]);
 
 if(lineChart) lineChart.destroy();
-lineChart=new Chart(document.getElementById('lineChart'),{
+
+lineChart = new Chart(document.getElementById('lineChart'),{
 type:'line',
-data:{labels:labels,datasets:[{data:values}]}
+data:{
+labels:labels,
+datasets:[{data:values}]
+},
+options:{
+responsive:true,
+maintainAspectRatio:false
+}
 });
 }
 
-// reset cuma lokal UI
+// reset
 function resetLocal(){
-if(confirm("Reset tampilan? (data di spreadsheet tetap ada)")){
-data=[];
-render();
+if(confirm("Reset tampilan lokal?")){
+load();
 }
 }
 
-// load awal
+// 🔥 FIX PALING PENTING UNTUK PREVIEW
+window.addEventListener('load',()=>{
+setTimeout(()=>{
 load();
+},800);
+});
 </script>
+
 </body>
-</html> 
+</html>
