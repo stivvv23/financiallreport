@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finance Pro</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+:root{--bg:#0f172a;--card:#1e293b;--text:#fff}
+body.light{--bg:#f1f5f9;--card:#fff;--text:#0f172a}
+body{font-family:Arial;background:var(--bg);color:var(--text);margin:0}
+.container{max-width:420px;margin:auto;padding:12px}
+.card{background:var(--card);padding:12px;border-radius:12px;margin-bottom:10px}
+.center{text-align:center}
+
+input,select,button{
+width:100%;padding:10px;margin-top:6px;border-radius:10px;border:none;
+}
+
+button{font-weight:bold}
+.green{background:#22c55e;color:#fff}
+.red{background:#ef4444;color:#fff}
+
+ul{list-style:none;padding:0;margin:0}
+
+li{
+background:#334155;margin-top:6px;padding:10px;border-radius:8px;
+display:flex;justify-content:space-between;gap:10px;
+}
+
+body.light li{background:#e2e8f0}
+
+li span:first-child{max-width:65%;word-wrap:break-word;}
+
+.income{color:#22c55e}
+.expense{color:#ef4444}
+
+canvas{max-height:160px;width:100%!important}
+.row{display:flex;gap:6px}
+.row>*{flex:1}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h2 class="center">💰 Finance Pro</h2>
+
+<div class="card center">
+<h3>Saldo: Rp <span id="saldo">0</span></h3>
+<button onclick="toggleMode()">Toggle Mode</button>
+</div>
+
+<div class="card"><canvas id="chart"></canvas></div>
+<div class="card"><canvas id="lineChart"></canvas></div>
+
+<div class="card">
+<h3>Input</h3>
+
+<div class="row">
+<input type="date" id="date">
+<input type="text" id="amount" placeholder="Jumlah">
+</div>
+
+<div class="row">
+<select id="type">
+<option value="income">Pemasukan</option>
+<option value="expense">Pengeluaran</option>
+</select>
+
+<select id="category">
+<option>Makan</option>
+<option>Jajan</option>
+<option>Transport</option>
+<option>Lainnya</option>
+</select>
+</div>
+
+<input type="text" id="desc" placeholder="Keterangan">
+<button class="green" onclick="add()">Tambah</button>
+</div>
+
+<div class="card">
+<h3>Riwayat</h3>
+<ul id="list"></ul>
+<button class="red" onclick="resetLocal()">Reset Lokal</button>
+</div>
+
+</div>
+
+<script>
+let data = [];
+let chart,lineChart;
+
+const SHEET_URL="https://script.google.com/macros/s/AKfycbwbdwyBPKgaBNVoWU3hVkSrBEmJftY0pPxr5wLPRcH2qgd5qVSA9kbRaKwGHWaOvPAYMg/exec";
+
+function format(num){
+return new Intl.NumberFormat('id-ID').format(num||0)
+}
+
+function today(){
+return new Date().toISOString().split('T')[0]
+}
+
+document.getElementById('date').value=today();
+
+function toggleMode(){
+document.body.classList.toggle('light')
+}
+
+// format rupiah input
+document.getElementById('amount').addEventListener('input',e=>{
+let val=e.target.value.replace(/\D/g,'');
+e.target.value=format(val);
+});
+
+// tambah data
+function add(){
+const item={
+date:document.getElementById('date').value,
+amount:parseInt(document.getElementById('amount').value.replace(/\./g,'')),
+type:document.getElementById('type').value,
+desc:document.getElementById('desc').value,
+category:document.getElementById('category').value
+};
+
+if(!item.amount) return alert("Isi jumlah");
+
+fetch(SHEET_URL,{
+method:'POST',
+mode:'no-cors',
+body:JSON.stringify(item)
+}).then(()=>{
+load(); // langsung reload data dari sheet
+});
+}
+
+// ambil data dari sheet
+async function load(){
+try{
+const res=await fetch(SHEET_URL);
+const result=await res.json();
+
+data=result.map(d=>({
+date:new Date(d.date).toISOString().split('T')[0],
+amount:Number(d.amount),
+type:d.type,
+desc:d.desc,
+category:d.category
+}));
+
+render();
+
+}catch(err){
+console.log("error",err);
+}
+}
+
+// render UI
+function render(){
+const list=document.getElementById('list');
+list.innerHTML='';
+
+let income=0,expense=0;
+
+data.slice().reverse().forEach(d=>{
+list.innerHTML+=`
+<li class="${d.type}">
+<span>${d.category} - ${d.desc||'-'}<br><small>${d.date}</small></span>
+<span>${d.type==='income'?'+':'-'} Rp ${format(d.amount)}</span>
+</li>`;
+
+if(d.type==='income') income+=d.amount;
+else expense+=d.amount;
+});
+
+document.getElementById('saldo').innerText=format(income-expense);
+
+// chart donut
+if(chart) chart.destroy();
+chart=new Chart(document.getElementById('chart'),{
+type:'doughnut',
+data:{labels:['Masuk','Keluar'],datasets:[{data:[income,expense]}]}
+});
+
+// chart line
+let map={};
+data.forEach(d=>{
+if(!map[d.date]) map[d.date]=0;
+map[d.date]+= d.type==='income'? d.amount : -d.amount;
+});
+
+const labels=Object.keys(map).sort();
+const values=labels.map(l=>map[l]);
+
+if(lineChart) lineChart.destroy();
+lineChart=new Chart(document.getElementById('lineChart'),{
+type:'line',
+data:{labels:labels,datasets:[{data:values}]}
+});
+}
+
+// reset cuma lokal UI
+function resetLocal(){
+if(confirm("Reset tampilan? (data di spreadsheet tetap ada)")){
+data=[];
+render();
+}
+}
+
+// load awal
+load();
+</script>
+</body>
+</html> 
