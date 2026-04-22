@@ -4,14 +4,36 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Finance Pro</title>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-:root{--bg:#0f172a;--card:#1e293b;--text:#fff}
-body.light{--bg:#f1f5f9;--card:#fff;--text:#0f172a}
-body{font-family:Arial;background:var(--bg);color:var(--text);margin:0}
+:root{
+--bg:#0f172a;
+--card:#1e293b;
+--text:#fff;
+--input:#334155;
+}
 
-.container{max-width:420px;margin:auto;padding:12px}
+body.light{
+--bg:#f1f5f9;
+--card:#fff;
+--text:#0f172a;
+--input:#e2e8f0;
+}
+
+body{
+font-family:Arial;
+background:var(--bg);
+color:var(--text);
+margin:0;
+}
+
+.container{
+max-width:420px;
+margin:auto;
+padding:12px;
+}
 
 .card{
 background:var(--card);
@@ -23,24 +45,47 @@ min-height:220px;
 
 .center{text-align:center}
 
-input,select,button{
-width:100%;padding:10px;margin-top:6px;border-radius:10px;border:none;
+input,select,textarea,button{
+width:100%;
+padding:10px;
+margin-top:6px;
+border-radius:10px;
+border:none;
+background:var(--input);
+color:var(--text);
 }
 
-button{font-weight:bold}
+input::placeholder,
+textarea::placeholder{
+color:#94a3b8;
+}
+
+button{
+font-weight:bold;
+cursor:pointer;
+}
+
 .green{background:#22c55e;color:#fff}
 .red{background:#ef4444;color:#fff}
 
 ul{list-style:none;padding:0;margin:0}
 
 li{
-background:#334155;margin-top:6px;padding:10px;border-radius:8px;
-display:flex;justify-content:space-between;gap:10px;
+background:#334155;
+margin-top:6px;
+padding:10px;
+border-radius:8px;
+display:flex;
+justify-content:space-between;
+gap:10px;
 }
 
 body.light li{background:#e2e8f0}
 
-li span:first-child{max-width:65%;word-wrap:break-word;}
+li span:first-child{
+max-width:65%;
+word-wrap:break-word;
+}
 
 .income{color:#22c55e}
 .expense{color:#ef4444}
@@ -50,6 +95,13 @@ height:180px !important;
 width:100%!important;
 display:block;
 min-height:180px;
+}
+
+.footer{
+text-align:center;
+padding:20px;
+font-size:12px;
+color:#94a3b8;
 }
 </style>
 </head>
@@ -70,12 +122,9 @@ min-height:180px;
 <div class="card">
 <h3>Input</h3>
 
-<div class="row">
 <input type="date" id="date">
 <input type="text" id="amount" placeholder="Jumlah">
-</div>
 
-<div class="row">
 <select id="type">
 <option value="Debet">Pemasukan</option>
 <option value="Kredit">Pengeluaran</option>
@@ -87,7 +136,6 @@ min-height:180px;
 <option>Transport</option>
 <option>Lainnya</option>
 </select>
-</div>
 
 <input type="text" id="desc" placeholder="Keterangan">
 <button class="green" onclick="add()">Tambah</button>
@@ -100,6 +148,8 @@ min-height:180px;
 </div>
 
 </div>
+
+<div class="footer">© 2026 Stevan William C.</div>
 
 <script>
 let data = [];
@@ -121,13 +171,12 @@ function toggleMode(){
 document.body.classList.toggle('light')
 }
 
-// input rupiah
+// format input rupiah
 document.getElementById('amount').addEventListener('input',e=>{
 let val=e.target.value.replace(/\D/g,'');
 e.target.value=format(val);
 });
 
-// tambah data
 function add(){
 const item={
 date:document.getElementById('date').value,
@@ -144,11 +193,10 @@ method:'POST',
 mode:'no-cors',
 body:JSON.stringify(item)
 }).then(()=>{
-setTimeout(load,900);
+setTimeout(load,800);
 });
 }
 
-// load data
 async function load(){
 try{
 const res = await fetch(SHEET_URL + "?t=" + Date.now());
@@ -158,26 +206,20 @@ const result = JSON.parse(text);
 data = result.map(d=>({
 date:(d.date||"").split('T')[0],
 amount:Number(d.amount)||0,
-type:d.type,
+type: d.type === 'Debet' ? 'income' : 'expense',
 desc:d.desc||"",
 category:d.category||""
 }));
 
 render();
 
-setTimeout(()=>{
-chart?.resize();
-lineChart?.resize();
-},200);
-
 }catch(err){
-console.log("LOAD ERROR:",err);
+console.log(err);
 data=[];
 render();
 }
 }
 
-// render
 function render(){
 const list=document.getElementById('list');
 list.innerHTML='';
@@ -186,9 +228,9 @@ let income=0, expense=0;
 
 data.slice().reverse().forEach(d=>{
 list.innerHTML+=`
-<li class="${d.type}">
+<li>
 <span>${d.category} - ${d.desc||'-'}<br><small>${d.date}</small></span>
-<span>${d.type==='income'?'+':'-'} Rp ${format(d.amount)}</span>
+<span class="${d.type}">${d.type==='income'?'+':'-'} Rp ${format(d.amount)}</span>
 </li>`;
 
 if(d.type==='income') income+=d.amount;
@@ -197,7 +239,7 @@ else expense+=d.amount;
 
 document.getElementById('saldo').innerText = format(income-expense);
 
-// CHART DONUT
+// donut
 if(chart) chart.destroy();
 
 chart = new Chart(document.getElementById('chart'),{
@@ -212,12 +254,12 @@ maintainAspectRatio:false
 }
 });
 
-// LINE CHART
+// line
 let map={};
 
 data.forEach(d=>{
 if(!d.date) return;
-map[d.date]=(map[d.date]||0)+ (d.type==='income'?d.amount:-d.amount);
+map[d.date]=(map[d.date]||0)+(d.type==='income'?d.amount:-d.amount);
 });
 
 const labels=Object.keys(map).sort();
@@ -238,21 +280,16 @@ maintainAspectRatio:false
 });
 }
 
-// reset
 function resetLocal(){
-if(confirm("Reset tampilan lokal?")){
+if(confirm("Reset tampilan?")){
 load();
 }
 }
 
-// 🔥 FIX PALING PENTING UNTUK PREVIEW
 window.addEventListener('load',()=>{
-setTimeout(()=>{
-load();
-},800);
+setTimeout(load,600);
 });
 </script>
- <div class="footer">© 2026 Stevan William C.</div>
 
 </body>
 </html>
