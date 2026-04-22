@@ -57,7 +57,7 @@ min-height:180px;
 <body>
 <div class="container">
 
-<h2 class="center">💰 Finance Pro</h2>
+<h2 class="center">💰 Financial Tracker</h2>
 
 <div class="card center">
 <h3>Saldo: Rp <span id="saldo">0</span></h3>
@@ -77,8 +77,8 @@ min-height:180px;
 
 <div class="row">
 <select id="type">
-<option value="income">Pemasukan</option>
-<option value="expense">Pengeluaran</option>
+<option value="Debet">Pemasukan</option>
+<option value="Kredit">Pengeluaran</option>
 </select>
 
 <select id="category">
@@ -96,7 +96,7 @@ min-height:180px;
 <div class="card">
 <h3>Riwayat</h3>
 <ul id="list"></ul>
-<button class="red" onclick="resetLocal()">Reset Tampilan</button>
+<button class="red" onclick="resetLocal()">Clear Tampilan</button>
 </div>
 
 </div>
@@ -252,6 +252,7 @@ load();
 },800);
 });
 </script>
+ <div class="footer">© 2026 Stevan William C.</div>
 
 </body>
 </html>
