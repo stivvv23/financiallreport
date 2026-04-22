@@ -3,11 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Financial Tracke</title>
+<title>Financial Tracker</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
+*{
+box-sizing:border-box;
+}
+
 :root{
 --bg:#0f172a;
 --card:#1e293b;
@@ -32,14 +36,14 @@ margin:0;
 .container{
 max-width:420px;
 margin:auto;
-padding:12px;
+padding:16px;
 }
 
 .card{
 background:var(--card);
-padding:12px;
+padding:16px;
 border-radius:12px;
-margin-bottom:10px;
+margin-bottom:12px;
 min-height:220px;
 }
 
@@ -47,12 +51,14 @@ min-height:220px;
 
 input,select,textarea,button{
 width:100%;
-padding:15px;
+max-width:100%;
+padding:14px;
 margin-top:10px;
-border-radius:15px;
+border-radius:12px;
 border:none;
 background:var(--input);
 color:var(--text);
+font-size:14px;
 }
 
 input::placeholder,
@@ -72,9 +78,9 @@ ul{list-style:none;padding:0;margin:0}
 
 li{
 background:#334155;
-margin-top:6px;
-padding:10px;
-border-radius:8px;
+margin-top:8px;
+padding:12px;
+border-radius:10px;
 display:flex;
 justify-content:space-between;
 gap:10px;
@@ -85,6 +91,7 @@ body.light li{background:#e2e8f0}
 li span:first-child{
 max-width:65%;
 word-wrap:break-word;
+font-size:13px;
 }
 
 .income{color:#22c55e}
@@ -171,7 +178,6 @@ function toggleMode(){
 document.body.classList.toggle('light')
 }
 
-// format input rupiah
 document.getElementById('amount').addEventListener('input',e=>{
 let val=e.target.value.replace(/\D/g,'');
 e.target.value=format(val);
